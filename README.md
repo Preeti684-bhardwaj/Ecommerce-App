@@ -11,8 +11,8 @@
   4) We deploy these APIs.
   5) We integrate these APIs with frontend.
   6) We will repeat steps from Step 1 to Step 5 for each feature in this project.
-- This project is divided into 4 features namely User, Product, Cart and Order. You need to work on a single feature at a time. Once that is completed as per above mentioned steps. You will be instructed to move to next Feature.
-- In this project we are changing how we send token with a request. Instead of using a custom header key like x-api-key, you need to use Authorization header and send the JWT token as Bearer token.
+- This project is divided into 4 features namely User, Product and Cart. Once that is completed as per above mentioned steps. You will be instructed to move to next Feature.
+- In this project we are changing how we send token with a request. Instead of using a custom header key like x-api-key, you need to use Authorization header and send the JWT token as cookie request.
 - Create a group database `groupXDatabase`. You can clean the db you previously used and resue that.
 - This time each group should have a *single git branch*. Branch name should follow the naming convention `project/productsManagement`
 - Follow the naming conventions exactly as instructed.
@@ -22,25 +22,45 @@
 ### Models
 - User Model
 ```yaml
-{ 
-  fname: {string, mandatory},
-  lname: {string, mandatory},
-  email: {string, mandatory, valid email, unique},
-  profileImage: {string, mandatory}, // s3 link
-  phone: {string, mandatory, unique, valid Indian mobile number}, 
-  password: {string, mandatory, minLen 8, maxLen 15}, // encrypted password
-  address: {
-    shipping: {
-      street: {string, mandatory},
-      city: {string, mandatory},
-      pincode: {number, mandatory}
+{
+    fname: {
+        type:String,
+        required:true,
+        trim:true
+        },
+    email: {
+        type:String,
+        required:true,
+        unique:true
     },
-    billing: {
-      street: {string, mandatory},
-      city: {string, mandatory},
-      pincode: {number, mandatory}
-    }
-  },
+    mobile: {
+        type:String,
+        required:true,
+        unique:true,
+        maxlength:10
+        }, 
+    password: {
+        type:String,
+        required:true, 
+        // minLength: 8, 
+        // maxLength: 6
+    }, // encrypted password
+    cpassword: {
+        type:String,
+        required:true, 
+        // minLength: 8, 
+        // maxLength: 6
+    },
+    tokens:[
+        {
+            token:{
+                type:String,
+                required:true
+            }
+        }
+    ],
+    carts:Array
+},
   createdAt: {timestamp},
   updatedAt: {timestamp}
 }
@@ -66,18 +86,12 @@
         "profileImage": "https://classroom-training-bucket.s3.ap-south-1.amazonaws.com/user/copernico-p_kICQCOM4s-unsplash.jpg",
         "phone": 9876543210,
         "password": "$2b$10$DpOSGb0B7cT0f6L95RnpWO2P/AtEoE6OF9diIiAEP7QrTMaV29Kmm",
-        "address": {
-            "shipping": {
-                "street": "MG Road",
-                "city": "Indore",
-                "pincode": 452001
-            },
-            "billing": {
-                "street": "MG Road",
-                "city": "Indore",
-                "pincode": 452001
-            }
-        },
+        carts
+          Array (0)
+            Object
+       tokens
+         Array (0)
+           Object,
         "_id": "6162876abdcb70afeeaf9cf5",
         "createdAt": "2021-10-10T06:25:46.051Z",
         "updatedAt": "2021-10-10T06:25:46.051Z",
@@ -97,8 +111,7 @@
 {
     "status": true,
     "message": "User login successfull",
-    "data": {
-        "userId": "6165f29cfe83625cf2c10a5c",
+    "data": {,
         "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2MTYyODc2YWJkY2I3MGFmZWVhZjljZjUiLCJpYXQiOjE2MzM4NDczNzYsImV4cCI6MTYzMzg4MzM3Nn0.PgcBPLLg4J01Hyin-zR6BCk7JHBY-RpuWMG_oIK7aV8"
     }
 }
@@ -115,18 +128,6 @@
     "status": true,
     "message": "User profile details",
     "data": {
-        "address": {
-            "shipping": {
-                "street": "MG Road",
-                "city": "Indore",
-                "pincode": 452001
-            },
-            "billing": {
-                "street": "MG Road",
-                "city": "Indore",
-                "pincode": 452001
-            }
-        },
         "_id": "6162876abdcb70afeeaf9cf5",
         "fname": "John",
         "lname": "Doe",
@@ -134,6 +135,12 @@
         "profileImage": "https://classroom-training-bucket.s3.ap-south-1.amazonaws.com/user/copernico-p_kICQCOM4s-unsplash.jpg",
         "phone": 9876543210,
         "password": "$2b$10$DpOSGb0B7cT0f6L95RnpWO2P/AtEoE6OF9diIiAEP7QrTMaV29Kmm",
+         carts
+          Array (0)
+            Object
+       tokens
+         Array (0)
+           Object,
         "createdAt": "2021-10-10T06:25:46.051Z",
         "updatedAt": "2021-10-10T06:25:46.051Z",
         "__v": 0
@@ -153,18 +160,6 @@
     "status": true,
     "message": "User profile updated",
     "data": {
-        "address": {
-            "shipping": {
-                "street": "MG Road",
-                "city": "Delhi",
-                "pincode": 110001
-            },
-            "billing": {
-                "street": "MG Road",
-                "city": "Indore",
-                "pincode": 452010
-            }
-        },
         "_id": "6162876abdcb70afeeaf9cf5",
         "fname": "Jane",
         "lname": "Austin",
@@ -186,19 +181,54 @@ Send [form-data](https://developer.mozilla.org/en-US/docs/Web/API/FormData)
 ### Models
 - Product Model
 ```yaml
-{ 
-  title: {string, mandatory, unique},
-  description: {string, mandatory},
-  price: {number, mandatory, valid number/decimal},
-  currencyId: {string, mandatory, INR},
-  currencyFormat: {string, mandatory, Rupee symbol},
-  isFreeShipping: {boolean, default: false},
-  productImage: {string, mandatory},  // s3 link
-  style: {string},
-  availableSizes: {array of string, at least one size, enum["S", "XS","M","X", "L","XXL", "XL"]},
-  installments: {number},
-  deletedAt: {Date, when the document is deleted}, 
-  isDeleted: {boolean, default: false},
+  {
+    id:{
+      type:String,
+      required: true,
+      trim: true
+    },
+    url:{
+      type:String,
+      required: true,
+      trim: true
+    },
+    detailUrl:{
+      type:String,
+      required:true,
+      trim:true
+    },
+    title: {
+      type: Object,
+      required: true,
+      unique: true,
+      trim: true
+    },
+
+    description: {
+      type: String,
+      // required: true,
+      trim: true
+    },
+
+    price: {
+      type: Object,
+      required: true,
+    },
+    discount: {
+      type: String,
+    },
+    tagline:{
+      type:String
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
+  },
   createdAt: {timestamp},
   updatedAt: {timestamp},
 }
@@ -255,13 +285,33 @@ Send [form-data](https://developer.mozilla.org/en-US/docs/Web/API/FormData)
 - Cart Model
 ```yaml
 {
-  userId: {ObjectId, refs to User, mandatory, unique},
+  userId: {
+    type:ObjectId,
+    ref: 'User',
+    required: true,
+    unique: true
+
+  },
   items: [{
-    productId: {ObjectId, refs to Product model, mandatory},
-    quantity: {number, mandatory, min 1}
+    productId: {
+      type:ObjectId,
+      ref: 'Product',
+      required: true
+    },
+    quantity: {
+      type: Number,
+      required: true,
+      min: 1
+    }
   }],
-  totalPrice: {number, mandatory, comment: "Holds total price of all the items in the cart"},
-  totalItems: {number, mandatory, comment: "Holds total number of items in the cart"},
+  totalPrice: {
+    type: Number,
+    required: true,
+  },
+  totalItems: {
+    type: Number,
+    required: true,
+  },
   createdAt: {timestamp},
   updatedAt: {timestamp},
 }
@@ -318,52 +368,6 @@ Send [form-data](https://developer.mozilla.org/en-US/docs/Web/API/FormData)
   - _**On success**_ - Return HTTP status 204. Return a suitable message. The response should be a JSON object like [this](#successful-response-structure)
   - _**On error**_ - Return a suitable error message with a valid HTTP status code. The response should be a JSON object like [this](#error-response-structure)
 
-
-
-## FEATURE IV - Order
-### Models
-- Order Model
-```yaml
-{
-  userId: {ObjectId, refs to User, mandatory},
-  items: [{
-    productId: {ObjectId, refs to Product model, mandatory},
-    quantity: {number, mandatory, min 1}
-  }],
-  totalPrice: {number, mandatory, comment: "Holds total price of all the items in the cart"},
-  totalItems: {number, mandatory, comment: "Holds total number of items in the cart"},
-  totalQuantity: {number, mandatory, comment: "Holds total number of quantity in the cart"},
-  cancellable: {boolean, default: true},
-  status: {string, default: 'pending', enum[pending, completed, cancled]},
-  deletedAt: {Date, when the document is deleted}, 
-  isDeleted: {boolean, default: false},
-  createdAt: {timestamp},
-  updatedAt: {timestamp},
-}
-```
-
-
-## Checkout/Order APIs (Authentication and authorization required)
-### POST /users/:userId/orders
-- Create an order for the user
-- Make sure the userId in params and in JWT token match.
-- Make sure the user exist
-- Get cart details in the request body
-- __Response format__
-  - _**On success**_ - Return HTTP status 200. Also return the order document. The response should be a JSON object like [this](#successful-response-structure)
-  - _**On error**_ - Return a suitable error message with a valid HTTP status code. The response should be a JSON object like [this](#error-response-structure)
-
-## PUT /users/:userId/orders
-- Updates an order status
-- Make sure the userId in params and in JWT token match.
-- Make sure the user exist
-- Get order id in request body
-- Make sure the order belongs to the user
-- Make sure that only a cancellable order could be canceled. Else send an appropriate error message and response.
-- __Response format__
-  - _**On success**_ - Return HTTP status 200. Also return the updated order document. The response should be a JSON object like [this](#successful-response-structure)
-  - _**On error**_ - Return a suitable error message with a valid HTTP status code. The response should be a JSON object like [this](#error-response-structure)
-
 ## Testing 
 - To test these apis create a new collection in Postman named Project 5 Shopping Cart
 - Each api should have a new request in this collection
@@ -397,47 +401,45 @@ Refer below sample
 ## users
 ```yaml
 {
-  _id: ObjectId("88abc190ef0288abc190ef02"),
-  fname: 'John',
-  lname: 'Doe',
-  email: 'johndoe@mailinator.com',
-  profileImage: 'http://function-up-test.s3.amazonaws.com/users/user/johndoe.jpg', // s3 link
-  phone: 9876543210,
-  password: '$2b$10$O.hrbBPCioVm237nAHYQ5OZy6k15TOoQSFhTT.recHBfQpZhM55Ty', // encrypted password
-  address: {
-    shipping: {
-      street: "110, Ridhi Sidhi Tower",
-      city: "Jaipur",
-      pincode: 400001
-    }, {mandatory}
-    billing: {
-      street: "110, Ridhi Sidhi Tower",
-      city: "Jaipur",
-      pincode: 400001
+    "status": true,
+    "message": "user successfully created",
+    "data": {
+        "fname": "Yash",
+        "email": "yash1234@gmail.com",
+        "mobile": "8630254021",
+        "password": "$2b$10$ZSimCR65XkZwRxD1kMdFROQjG840T62nwClDBiJJqyt5MnMc.NvKe",
+        "cpassword": "$2b$10$MJY4ql.WIzsQG9Bt5PU7Neh1oCx3e4GueZGabKPRsrOEvmn1X9boi",
+        "carts": [],
+        "_id": "64be9978dbc6c980df101095",
+        "tokens": [],
+        "__v": 0
     }
-  },
-  createdAt: "2021-09-17T04:25:07.803Z",
-  updatedAt: "2021-09-17T04:25:07.803Z",
 }
 ```
 ### products
 ```yaml
 {
-  _id: ObjectId("88abc190ef0288abc190ef55"),
-  title: 'Nit Grit',
-  description: 'Dummy description',
-  price: 23.0,
-  currencyId: 'INR',
-  currencyFormat: '₹',
-  isFreeShipping: false,
-  productImage: 'http://function-up-test.s3.amazonaws.com/products/product/nitgrit.jpg',  // s3 link
-  style: 'Colloar',
-  availableSizes: ["S", "XS","M","X", "L","XXL", "XL"],
-  installments: 5,
-  deletedAt: null, 
-  isDeleted: false,
-  createdAt: "2021-09-17T04:25:07.803Z",
-  updatedAt: "2021-09-17T04:25:07.803Z",
+    "_id": "64be9957dbc6c980df101049",
+    "id": "product3",
+    "url": "https://rukminim1.flixcart.com/image/150/150/kohigsw0/resistance-tube/c/s/e/new-adjustable-single-resistance-tube-multicolor-na-ajro-deal-original-imag2xg88mhmwxz5.jpeg?q=70",
+    "detailUrl": "https://rukminim1.flixcart.com/image/416/416/kohigsw0/resistance-tube/c/s/e/new-adjustable-single-resistance-tube-multicolor-na-ajro-deal-original-imag2xg88mhmwxz5.jpeg?q=70",
+    "title": {
+        "shortTitle": "Fitness Gear",
+        "longTitle": "AJRO DEAL New Adjustable Single Resistance Tube (Multicolor) Resistance Tube  (Multicolor)"
+    },
+    "description": "This unique product can tone your back muscles, reduce belly fat, improve blood circulation and also improves your body posture. It increases the stamina, energy and vitality of the body. The elastic resistance of the rubber training rope can be used to train and exercise in whichever way you want, according to your physical needs.",
+    "price": {
+        "mrp": 499,
+        "cost": 166,
+        "discount": "66%"
+    },
+    "discount": "Upto 70% Off",
+    "tagline": "Deal of the Day",
+    "deletedAt": null,
+    "isDeleted": false,
+    "__v": 0,
+    "createdAt": "2023-07-24T15:31:35.760Z",
+    "updatedAt": "2023-07-24T15:31:35.760Z"
 }
 ```
 
@@ -463,21 +465,43 @@ Refer below sample
 ### orders
 ```yaml
 {
-  "_id": ObjectId("88abc190ef0288abc190ef88"),
-  userId: ObjectId("88abc190ef0288abc190ef02"),
-  items: [{
-    productId: ObjectId("88abc190ef0288abc190ef55"),
-    quantity: 2
-  }, {
-    productId: ObjectId("88abc190ef0288abc190ef60"),
-    quantity: 1
-  }],
-  totalPrice: 50.99,
-  totalItems: 2,
-  totalQuantity: 3,
-  cancellable: true,
-  status: 'pending'
-  createdAt: "2021-09-17T04:25:07.803Z",
-  updatedAt: "2021-09-17T04:25:07.803Z",
+    "_id": "64be9978dbc6c980df101095",
+    "fname": "Yash",
+    "email": "yash1234@gmail.com",
+    "mobile": "8630254021",
+    "password": "$2b$10$ZSimCR65XkZwRxD1kMdFROQjG840T62nwClDBiJJqyt5MnMc.NvKe",
+    "cpassword": "$2b$10$MJY4ql.WIzsQG9Bt5PU7Neh1oCx3e4GueZGabKPRsrOEvmn1X9boi",
+    "carts": [
+        {
+            "_id": "64be9957dbc6c980df101049",
+            "id": "product3",
+            "url": "https://rukminim1.flixcart.com/image/150/150/kohigsw0/resistance-tube/c/s/e/new-adjustable-single-resistance-tube-multicolor-na-ajro-deal-original-imag2xg88mhmwxz5.jpeg?q=70",
+            "detailUrl": "https://rukminim1.flixcart.com/image/416/416/kohigsw0/resistance-tube/c/s/e/new-adjustable-single-resistance-tube-multicolor-na-ajro-deal-original-imag2xg88mhmwxz5.jpeg?q=70",
+            "title": {
+                "shortTitle": "Fitness Gear",
+                "longTitle": "AJRO DEAL New Adjustable Single Resistance Tube (Multicolor) Resistance Tube  (Multicolor)"
+            },
+            "description": "This unique product can tone your back muscles, reduce belly fat, improve blood circulation and also improves your body posture. It increases the stamina, energy and vitality of the body. The elastic resistance of the rubber training rope can be used to train and exercise in whichever way you want, according to your physical needs.",
+            "price": {
+                "mrp": 499,
+                "cost": 166,
+                "discount": "66%"
+            },
+            "discount": "Upto 70% Off",
+            "tagline": "Deal of the Day",
+            "deletedAt": null,
+            "isDeleted": false,
+            "__v": 0,
+            "createdAt": "2023-07-24T15:31:35.760Z",
+            "updatedAt": "2023-07-24T15:31:35.760Z"
+        }
+    ],
+    "tokens": [
+        {
+            "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NGJlOTk3OGRiYzZjOTgwZGYxMDEwOTUiLCJpYXQiOjE2OTAyMTI3OTEsImV4cCI6MTY5MDI5OTE5MX0.E69MoWIAFOcdYist4BdjY7NTWg57VY_4HZujy_XRv5M",
+            "_id": "64be99b7dbc6c980df101098"
+        }
+    ],
+    "__v": 2
 }
 ```
